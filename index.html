@@ -1,121 +1,16 @@
-<!doctype html>
-<html lang="ru"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="dark">
-<title>TendorX</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="config.js"></script>
-<style>
-:root{--bg:#020510;--p:rgba(14,32,76,.55);--l:rgba(46,168,255,.28);--n:#2ea8ff;--c:#27e0ff;--t:#eef4ff;--s:#9db0d4;--ok:#19e68c;--no:#ff4560}
-*{box-sizing:border-box;margin:0}html,body{background:var(--bg);color:var(--t);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
-body{min-height:100vh;background:radial-gradient(ellipse at 50% -10%,#0b2a7a 0,transparent 55%),var(--bg);display:flex;flex-direction:column;align-items:center}
-#app{width:100%;max-width:560px;padding:16px 16px calc(96px + env(safe-area-inset-bottom))}
-.logo{font:italic 800 26px system-ui;letter-spacing:-.5px;background:linear-gradient(90deg,#fff,#b9d4ff 60%,var(--n));-webkit-background-clip:text;background-clip:text;color:transparent}
-.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
-h2{font-size:22px;margin:4px 0 12px}h3{font-size:17px;margin:20px 0 10px}small,.mut{color:var(--s);font-size:13px}
-.card,.row,input,select,textarea{background:var(--p);border:1px solid var(--l);border-radius:16px;color:var(--t);backdrop-filter:blur(8px)}
-.card{padding:14px;margin-bottom:12px;box-shadow:0 0 24px rgba(46,168,255,.08)}.hero{background:linear-gradient(135deg,rgba(30,90,255,.35),rgba(10,20,60,.6));box-shadow:0 0 30px rgba(46,168,255,.25)}
-input,select,textarea{width:100%;padding:13px 14px;font:inherit;margin-bottom:10px;outline:none}input:focus,select:focus,textarea:focus{border-color:var(--c);box-shadow:0 0 0 3px rgba(39,224,255,.18)}
-.row{display:flex;align-items:center;gap:12px;padding:12px;margin-bottom:10px;cursor:pointer}.row:active{transform:scale(.985)}.g{flex:1;min-width:0}.g b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.av{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-weight:800;flex:none;background:hsl(var(--h) 70% 30%);border:2px solid hsl(var(--h) 90% 60%);box-shadow:0 0 14px hsl(var(--h) 90% 50%/.5)}
-.btn{border:0;border-radius:14px;padding:13px 18px;font:600 15px inherit;color:#fff;cursor:pointer;background:linear-gradient(180deg,#2f8bff,#1456e8);box-shadow:0 0 18px rgba(46,140,255,.45)}
-.btn.sm{padding:9px 13px;font-size:13px;white-space:nowrap}.btn.on{background:var(--p);border:1px solid var(--l);box-shadow:none;color:var(--c)}.btn.w{width:100%}.btn.ok{background:linear-gradient(180deg,#1fe08f,#0a9e62)}.btn.no{background:linear-gradient(180deg,#ff5a70,#c91f3b)}.btn.gh{background:var(--p);border:1px solid var(--l);box-shadow:none}
-.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin-bottom:6px}.chip{flex:none;padding:9px 14px;border-radius:12px;background:var(--p);border:1px solid var(--l);color:var(--s);cursor:pointer;font-size:14px}.chip.on{color:#fff;border-color:var(--c);box-shadow:0 0 14px rgba(39,224,255,.35)}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.stat{text-align:center}.stat b{display:block;font-size:22px}
-.err{color:var(--no);margin:6px 0 10px}.note{border-left:3px solid var(--c);padding:8px 12px;margin:10px 0;color:var(--s);font-size:14px}
-.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;border:1px solid var(--l);color:var(--c)}.tag{display:inline-block;margin:0 6px 6px 0;padding:5px 11px;border-radius:99px;background:var(--p);border:1px solid var(--l);font-size:13px}
-nav{position:fixed;bottom:0;width:100%;max-width:560px;display:grid;grid-template-columns:repeat(5,1fr);padding:8px 6px calc(8px + env(safe-area-inset-bottom));background:rgba(3,8,24,.92);backdrop-filter:blur(14px);border-top:1px solid var(--l);border-radius:22px 22px 0 0}
-nav button{background:none;border:0;color:var(--s);font:12px inherit;display:grid;justify-items:center;gap:2px;padding:4px;cursor:pointer}nav button i{font-style:normal;font-size:22px}nav button.on{color:var(--c)}
-nav .plus i{width:52px;height:52px;margin-top:-26px;border-radius:50%;display:grid;place-items:center;font-size:30px;color:#fff;background:linear-gradient(180deg,#38a0ff,#1456e8);box-shadow:0 0 22px rgba(46,168,255,.7)}
-#toast{position:fixed;left:50%;bottom:104px;transform:translateX(-50%);background:#0d1f4d;border:1px solid var(--c);padding:11px 18px;border-radius:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9;max-width:90%;text-align:center}#toast.show{opacity:1}
-button:focus-visible,.row:focus-visible,.chip:focus-visible{outline:2px solid var(--c);outline-offset:2px}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
-</style></head><body><div id="app"></div><nav id="nav"></nav><div id="toast" role="status"></div>
-<script>
-const tg=window.Telegram?.WebApp;tg?.ready();tg?.expand();
-const IN=!!tg?.initData,sb=supabase.createClient(CFG.url,CFG.anon);
-const S={cats:[],list:[],me:null,scr:'home',q:'',cat:null,sort:'top',cur:null,add:{step:'input',tab:'link'},sub:'',adm:null,err:''};
-const $=s=>document.querySelector(s),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const N=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':String(n);
-const ST={pending:['На модерации','Заявка проверяется. До одобрения группа не видна в каталоге.'],changes:['Нужны исправления','Исправьте данные и отправьте заявку снова.'],approved:['Одобрено','Сообщество опубликовано в каталоге.'],rejected:['Отклонено','Заявка не прошла проверку.'],hidden:['Скрыто','Сообщество скрыто из каталога.'],blocked:['Заблокировано','Публикация запрещена.'],draft:['Черновик','']};
-let tt;const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2600)};
-async function api(action,b={}){const r=await fetch(CFG.url+'/functions/v1/api',{method:'POST',headers:{'Content-Type':'application/json',apikey:CFG.anon,Authorization:'Bearer '+CFG.anon},body:JSON.stringify({action,initData:tg?.initData||'',...b})});
- const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Ошибка сервера');return j.data}
-async function loadPub(){const[a,b]=await Promise.all([sb.rpc('tx_categories'),sb.rpc('tx_catalog',{p_q:S.q||null,p_cat:S.cat,p_sort:S.sort,p_limit:200})]);
- if(a.error||b.error){S.err='Не удалось загрузить каталог. Проверьте config.js и миграцию.';return}S.err='';S.cats=a.data;S.list=b.data}
-async function loadMe(){if(IN)try{S.me=await api('me')}catch(x){toast(x.message)}}
-const voted=id=>S.me?.voted?.includes(id),fav=id=>S.me?.favs?.includes(id),staff=()=>['master_admin','admin','moderator','analyst'].includes(S.me?.role);
-const av=c=>`<div class="av" style="--h:${[...c.title].reduce((a,x)=>a+x.charCodeAt(0),0)%360}">${e([...c.title][0]?.toUpperCase()||'?')}</div>`;
-const row=c=>`<div class="row" tabindex="0" data-a="open" data-v="${c.id}">${av(c)}<div class="g"><b>${e(c.title)}</b><small>#${c.rank} · ${N(c.votes)} голосов · ${e(c.category||'')}</small></div><button class="btn sm ${voted(c.id)?'on':''}" data-a="vote" data-v="${c.id}">${voted(c.id)?'Голос ✓':'Голосовать'}</button></div>`;
-const empty='<div class="card mut">Пока нет сообществ. Добавьте первое — это бесплатно.</div>';
-const list=a=>a.length?a.map(row).join(''):empty;
-const V={
-home:()=>`<div class="top"><span class="logo">TendorX</span><button class="btn sm gh" data-a="go" data-v="profile">🔔 ${S.me?.notes?.length||''}</button></div>
- <input id="q" type="search" placeholder="Поиск групп, каналов, категорий…" value="${e(S.q)}" aria-label="Поиск">
- <div class="card hero"><h2>Расти вместе с TendorX</h2><span class="mut">Лучшие Telegram-сообщества в одном месте. Голосуй бесплатно, находи полезное.</span></div>
- ${IN?'':'<div class="note">Откройте приложение в Telegram, чтобы голосовать и добавлять сообщества. Каталог доступен для просмотра.</div>'}
- <h3>Популярные категории</h3><div class="chips">${S.cats.map(c=>`<div class="chip" tabindex="0" data-a="cat" data-v="${c.id}">${e(c.icon)} ${e(c.title)}</div>`).join('')}</div>
- <h3>${S.q?'Результаты поиска':'Топ сообщества'}</h3>${list(S.list.slice(0,S.q?50:5))}`,
-catalog:()=>`<h2>Каталог</h2><input id="q" type="search" placeholder="Поиск…" value="${e(S.q)}" aria-label="Поиск">
- <div class="chips"><div class="chip ${S.cat?'':'on'}" data-a="cat" data-v="">Все</div>${S.cats.map(c=>`<div class="chip ${S.cat===c.id?'on':''}" data-a="cat" data-v="${c.id}">${e(c.icon)} ${e(c.title)} · ${c.groups}</div>`).join('')}</div>
- <div class="chips">${[['top','Популярные'],['new','Новые'],['growth','Растущие']].map(([k,t])=>`<div class="chip ${S.sort===k?'on':''}" data-a="sort" data-v="${k}">${t}</div>`).join('')}</div>${list(S.list)}`,
-rating:()=>`<h2>Рейтинг</h2><div class="note">Органический рейтинг: только подтверждённые голоса пользователей. Платное продвижение на него не влияет.</div>
- <div class="chips">${[['top','За всё время'],['growth','За 7 дней'],['new','Новые']].map(([k,t])=>`<div class="chip ${S.sort===k?'on':''}" data-a="sort" data-v="${k}">${t}</div>`).join('')}</div>${list(S.list)}`,
-item:()=>{const c=S.cur;if(!c)return empty;return`<button class="btn sm gh" data-a="go" data-v="${S.back||'home'}">← Назад</button>
- <div class="card" style="text-align:center;margin-top:12px">${av(c).replace('class="av"','class="av" style="width:84px;height:84px;font-size:34px;margin:0 auto 10px;--h:'+([...c.title].reduce((a,x)=>a+x.charCodeAt(0),0)%360)+'"')}<h2>${e(c.title)}</h2><span class="badge">${e(c.category||'')}</span>
- <div class="grid" style="margin-top:14px"><div class="stat"><b>#${c.rank}</b><small>Место</small></div><div class="stat"><b>${N(c.votes)}</b><small>Голосов</small></div><div class="stat"><b>+${N(c.growth)}</b><small>За 7 дней</small></div></div></div>
- <div style="display:flex;gap:10px"><button class="btn w ${voted(c.id)?'on':''}" data-a="vote" data-v="${c.id}">${voted(c.id)?'Вы проголосовали ✓':'Проголосовать'}</button><button class="btn gh" data-a="fav" data-v="${c.id}" aria-label="Избранное">${fav(c.id)?'★':'☆'}</button></div>
- <p style="margin:14px 0">${e(c.description)||'<span class="mut">Описание не указано</span>'}</p>${(c.tags||[]).map(t=>`<span class="tag">${e(t)}</span>`).join('')}
- <button class="btn gh w" style="margin-top:10px" data-a="tg" data-v="${c.id}">Перейти в Telegram</button>`},
-add:()=>{const a=S.add;let h='<h2>Добавить сообщество</h2>';
- if(!IN)return h+'<div class="note">Добавлять сообщества можно только из Telegram — владелец определяется по подписи Telegram.</div>';
- if(a.step==='done')return h+`<div class="card"><h3 style="margin-top:0">Заявка отправлена</h3><span class="mut">${ST.pending[1]} Статус смотрите в профиле → Мои сообщества.</span></div><button class="btn w" data-a="go" data-v="profile">Открыть профиль</button>`;
- if(a.step==='form')return h+`<div class="card"><b>@${e(a.u)}</b><div class="note">Данные Telegram не получены автоматически: бот TendorX ещё не подключён. Введите данные вручную. Публичная ссылка не доказывает владение — модератор проверит права перед публикацией.</div>
- <input id="f_t" placeholder="Название" maxlength="80"><textarea id="f_d" placeholder="Описание" maxlength="500" rows="3"></textarea>
- <select id="f_c"><option value="">Категория</option>${S.cats.map(c=>`<option value="${c.id}">${e(c.title)}</option>`).join('')}</select>
- <select id="f_k"><option value="group">Группа</option><option value="supergroup">Супергруппа</option><option value="channel">Канал</option></select>
- <input id="f_g" placeholder="Теги через запятую (до 5)"><div class="err">${e(S.err)}</div></div>
- <button class="btn w" data-a="submit">Отправить на модерацию</button><button class="btn gh w" style="margin-top:10px" data-a="addreset">Назад</button>`;
- h+=`<div class="chips">${[['link','Вставить ссылку'],['mine','Мои подключённые'],['bot','Подключить через бота']].map(([k,t])=>`<div class="chip ${a.tab===k?'on':''}" data-a="addtab" data-v="${k}">${t}</div>`).join('')}</div>`;
- if(a.tab!=='link')return h+'<div class="card mut">Подключение через TendorX Bot ещё не настроено. Пока доступно добавление по ссылке. Настройка бота описана в README.</div>';
- return h+`<input id="lnk" placeholder="https://t.me/your_group" value="${e(a.v||'')}" autocapitalize="off" autocomplete="off"><div class="err">${e(S.err)}</div><button class="btn w" data-a="find">Найти сообщество</button>`},
-profile:()=>{const m=S.me,sub=S.sub;let h=`<div class="top"><span class="logo">Профиль</span></div>`;
- if(!IN)return h+'<div class="note">Откройте приложение в Telegram, чтобы войти. Вход выполняется через подпись Telegram.</div>';
- const u=tg.initDataUnsafe?.user||{};h+=`<div class="card" style="text-align:center"><b style="font-size:20px">${e(u.first_name||'Пользователь')}</b><br><span class="badge">${e(m?.role||'user')}</span>
- <div class="grid" style="margin-top:12px"><div class="stat"><b>${m?.voted?.length||0}</b><small>Голосов</small></div><div class="stat"><b>${m?.communities?.length||0}</b><small>Групп</small></div><div class="stat"><b>${m?.favs?.length||0}</b><small>Избранное</small></div></div></div>`;
- const men=[['comms','Мои сообщества'],['favs','Избранное'],['votes','Мои голосования'],['notes','Уведомления '+(m?.notes?.length||'')]];if(staff())men.push(['admin','Панель модерации']);
- h+=men.map(([k,t])=>`<div class="row" tabindex="0" data-a="sub" data-v="${k}"><div class="g"><b>${t}</b></div><span>›</span></div>`).join('');
- const byIds=ids=>S.list.filter(c=>ids?.includes(c.id));
- if(sub==='comms')h+='<h3>Мои сообщества</h3>'+(m.communities.length?m.communities.map(c=>`<div class="card"><b>${e(c.title)}</b> <span class="badge">${ST[c.status][0]}</span><br><small>@${e(c.username)} · ${N(c.votes)} голосов · ${N(c.clicks)} переходов</small><div class="mut" style="margin-top:6px">${e(c.reason||ST[c.status][1])}</div></div>`).join(''):'<div class="card mut">У вас пока нет сообществ.</div>');
- if(sub==='favs')h+='<h3>Избранное</h3>'+list(byIds(m.favs));if(sub==='votes')h+='<h3>Мои голосования</h3>'+list(byIds(m.voted));
- if(sub==='notes')h+='<h3>Уведомления</h3>'+(m.notes.length?m.notes.map(n=>`<div class="card"><b>${e(n.title)}</b><br><small>${e(n.body)} · ${new Date(n.at).toLocaleString('ru')}</small></div>`).join(''):'<div class="card mut">Уведомлений нет.</div>');
- if(sub==='admin'&&S.adm){const s=S.adm.s;h+=`<h3>Платформа</h3><div class="grid">${[['users','Пользователей'],['active24h','Активных 24ч'],['approved','Групп'],['pending','На модерации'],['votes','Голосов'],['clicks','Переходов']].map(([k,t])=>`<div class="card stat"><b>${N(s[k])}</b><small>${t}</small></div>`).join('')}</div>
- <h3>Заявки (${S.adm.q.length})</h3>${S.adm.q.length?S.adm.q.map(c=>`<div class="card"><b>${e(c.title)}</b> <small>@${e(c.username)} · ${e(c.category||'')} · ${e(c.owner||'')}</small><p class="mut" style="margin:6px 0">${e(c.description)}</p>
- <input id="r${c.id}" placeholder="Причина (для отклонения / доработки)"><div style="display:flex;gap:8px"><button class="btn sm ok" data-a="mod" data-v="${c.id}|approved">Одобрить</button><button class="btn sm gh" data-a="mod" data-v="${c.id}|changes">На доработку</button><button class="btn sm no" data-a="mod" data-v="${c.id}|rejected">Отклонить</button></div></div>`).join(''):'<div class="card mut">Новых заявок нет.</div>'}`}
- return h+'<p class="mut" style="margin-top:16px;text-align:center">Выход: закройте мини-приложение — сессия привязана к Telegram.</p>'}};
-const NAV=[['home','⌂','Главная'],['catalog','◫','Каталог'],['add','+','Добавить','plus'],['rating','☆','Рейтинг'],['profile','☺','Профиль']];
-function render(){$('#app').innerHTML=S.err&&!S.cats.length?`<div class="card err">${e(S.err)}</div>`:V[S.scr]();
- $('#nav').innerHTML=NAV.map(([k,i,t,c])=>`<button class="${c||''} ${S.scr===k||(S.scr==='item'&&k==='catalog')?'on':''}" data-a="go" data-v="${k}"><i>${i}</i>${t}</button>`).join('');scrollTo(0,0)}
-const need=()=>IN||(toast('Откройте приложение в Telegram'),false);
-const act={
- go:async v=>{S.scr=v;if(v==='profile'){await loadMe()}if(v==='home'||v==='catalog'||v==='rating'){S.sub=''}render()},
- open:v=>{S.cur=S.list.find(c=>c.id==v);S.back=S.scr;S.scr='item';render()},
- cat:async v=>{S.cat=v?+v:null;if(S.scr==='home')S.scr='catalog';await loadPub();render()},
- sort:async v=>{S.sort=v;await loadPub();render()},
- vote:async v=>{if(!need())return;try{const r=await api('vote',{id:+v});toast(r.added?'Голос засчитан':'Вы уже голосовали за это сообщество');await Promise.all([loadPub(),loadMe()]);if(S.scr==='item')S.cur=S.list.find(c=>c.id==v);render()}catch(x){toast(x.message)}},
- fav:async v=>{if(!need())return;try{const r=await api('fav',{id:+v});toast(r?'Добавлено в избранное':'Удалено из избранного');await loadMe();render()}catch(x){toast(x.message)}},
- tg:async v=>{const c=S.cur;if(!c||!/^[A-Za-z0-9_]{5,32}$/.test(c.username))return;if(IN)api('click',{id:+v}).catch(()=>{});const u='https://t.me/'+c.username;tg?.openTelegramLink?tg.openTelegramLink(u):open(u,'_blank','noopener')},
- sub:async v=>{S.sub=S.sub===v?'':v;if(v==='admin'&&S.sub){try{const[s,q]=await Promise.all([api('stats'),api('queue')]);S.adm={s,q}}catch(x){toast(x.message);S.sub=''}}render()},
- mod:async v=>{const[id,st]=v.split('|'),r=$('#r'+id)?.value||'';try{await api('moderate',{id:+id,status:st,reason:r});toast('Готово');const[s,q]=await Promise.all([api('stats'),api('queue')]);S.adm={s,q};await loadPub();render()}catch(x){toast(x.message)}},
- addtab:v=>{S.add={step:'input',tab:v};S.err='';render()},addreset:()=>{S.add={step:'input',tab:'link'};S.err='';render()},
- find:()=>{const v=$('#lnk').value.trim();S.add.v=v;S.err='';
-  if(/t\.me\/\+|joinchat/i.test(v))S.err='Закрытые сообщества проверяются вручную — обратитесь в поддержку.';
-  else{const m=v.match(/^(?:https?:\/\/)?(?:t(?:elegram)?\.me\/)?@?([A-Za-z0-9_]{5,32})\/?$/);
-   if(!m)S.err='Ссылка неверная. Пример: t.me/your_group';
-   else if(S.list.some(c=>c.username.toLowerCase()===m[1].toLowerCase())){toast('Сообщество уже есть в каталоге');S.cur=S.list.find(c=>c.username.toLowerCase()===m[1].toLowerCase());S.scr='item';S.back='add'}
-   else{S.add={step:'form',u:m[1]}}}render()},
- submit:async()=>{S.err='';try{await api('submit',{username:S.add.u,title:$('#f_t').value,description:$('#f_d').value,category:$('#f_c').value,kind:$('#f_k').value,tags:$('#f_g').value});S.add={step:'done'};await loadMe()}catch(x){S.err=x.message}render()}};
-document.addEventListener('click',ev=>{const t=ev.target.closest('[data-a]');if(t)act[t.dataset.a]?.(t.dataset.v)});
-document.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.matches('.row,.chip'))ev.target.click()});
-let dt;document.addEventListener('input',ev=>{if(ev.target.id!=='q')return;clearTimeout(dt);dt=setTimeout(async()=>{S.q=ev.target.value.trim();await loadPub();const p=$('#app');const c=p.innerHTML;render();const q=$('#q');if(q){q.focus();q.setSelectionRange(q.value.length,q.value.length)}},350)});
-(async()=>{await Promise.all([loadPub(),loadMe()]);render()})();
-</script></body></html>
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="refresh" content="0; url=./web/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TendorX</title>
+</head>
+<body>
+  <p>Переход на TendorX...</p>
+  <script>
+    window.location.replace('./web/');
+  </script>
+</body>
+</html>
