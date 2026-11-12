@@ -46,7 +46,7 @@ const IN = !!(
         tg.initDataUnsafe?.query_id
     )
 );
-
+console.log('ПРОВЕРКА IN:', IN);
 const sb = supabase.createClient(CFG.url, CFG.anon);
 const S={cats:[],list:[],me:null,scr:'home',q:'',cat:null,sort:'top',cur:null,add:{step:'input',tab:'link'},sub:'',adm:null,err:''};
 const $=s=>document.querySelector(s),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
