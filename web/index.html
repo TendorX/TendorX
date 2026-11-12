@@ -133,7 +133,51 @@ const act={
    if(!m)S.err='Ссылка неверная. Пример: t.me/your_group';
    else if(S.list.some(c=>c.username.toLowerCase()===m[1].toLowerCase())){toast('Сообщество уже есть в каталоге');S.cur=S.list.find(c=>c.username.toLowerCase()===m[1].toLowerCase());S.scr='item';S.back='add'}
    else{S.add={step:'form',u:m[1]}}}render()},
- submit:async()=>{S.err='';try{await api('submit',{username:S.add.u,title:$('#f_t').value,description:$('#f_d').value,category:$('#f_c').value,kind:$('#f_k').value,tags:$('#f_g').value});S.add={step:'done'};await loadMe()}catch(x){S.err=x.message}render()}};
+ submit:async()=>{
+    S.err='';
+
+    const title=$('#f_t').value.trim();
+    const description=$('#f_d').value.trim();
+    const category=$('#f_c').value;
+    const kind=$('#f_k').value;
+    const tags=$('#f_g').value.trim();
+
+    if(!title){
+      S.err='Введите название сообщества';
+      render();
+      return;
+    }
+
+    if(!category){
+      S.err='Выберите категорию';
+      render();
+      return;
+    }
+
+    if(tags && tags.split(',').filter(x=>x.trim()).length>5){
+      S.err='Можно указать не более 5 тегов';
+      render();
+      return;
+    }
+
+    try{
+      await api('submit',{
+        username:S.add.u,
+        title,
+        description,
+        category,
+        kind,
+        tags
+      });
+      S.add={step:'done'};
+      await loadMe();
+    }catch(x){
+      S.err=x.message;
+    }
+
+    render();
+  }
+};
 document.addEventListener('click',ev=>{const t=ev.target.closest('[data-a]');if(t)act[t.dataset.a]?.(t.dataset.v)});
 document.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.matches('.row,.chip'))ev.target.click()});
 let dt;document.addEventListener('input',ev=>{if(ev.target.id!=='q')return;clearTimeout(dt);dt=setTimeout(async()=>{S.q=ev.target.value.trim();await loadPub();const p=$('#app');const c=p.innerHTML;render();const q=$('#q');if(q){q.focus();q.setSelectionRange(q.value.length,q.value.length)}},350)});
