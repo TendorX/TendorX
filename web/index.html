@@ -31,8 +31,23 @@ nav .plus i{width:52px;height:52px;margin-top:-26px;border-radius:50%;display:gr
 button:focus-visible,.row:focus-visible,.chip:focus-visible{outline:2px solid var(--c);outline-offset:2px}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style></head><body><div id="app"></div><nav id="nav"></nav><div id="toast" role="status"></div>
 <script>
-const tg=window.Telegram?.WebApp;tg?.ready();tg?.expand();
-const IN=!!tg?.initData,sb=supabase.createClient(CFG.url,CFG.anon);
+const tg = window.Telegram?.WebApp;
+
+if (tg) {
+    tg.ready();
+    tg.expand();
+}
+
+const IN = !!(
+    tg &&
+    (
+        tg.initData ||
+        tg.initDataUnsafe?.user ||
+        tg.initDataUnsafe?.query_id
+    )
+);
+
+const sb = supabase.createClient(CFG.url, CFG.anon);
 const S={cats:[],list:[],me:null,scr:'home',q:'',cat:null,sort:'top',cur:null,add:{step:'input',tab:'link'},sub:'',adm:null,err:''};
 const $=s=>document.querySelector(s),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const N=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':String(n);
