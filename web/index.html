@@ -110,7 +110,12 @@ profile:()=>{const m=S.me,sub=S.sub;let h=`<div class="top"><span class="logo">�
 const NAV=[['home','⌂','Главная'],['catalog','◫','Каталог'],['add','+','Добавить','plus'],['rating','☆','Рейтинг'],['profile','☺','Профиль']];
 function render(){$('#app').innerHTML=S.err&&!S.cats.length?`<div class="card err">${e(S.err)}</div>`:V[S.scr]();
  $('#nav').innerHTML=NAV.map(([k,i,t,c])=>`<button class="${c||''} ${S.scr===k||(S.scr==='item'&&k==='catalog')?'on':''}" data-a="go" data-v="${k}"><i>${i}</i>${t}</button>`).join('');scrollTo(0,0)}
-const need=()=>IN||(toast('Откройте приложение в Telegram'),false);
+const isTelegram = () => {
+    const webApp = window.Telegram?.WebApp;
+    return !!(webApp && webApp.initData);
+};
+
+const need = () => isTelegram() || (toast('Откройте приложение в Telegram'), false);
 const act={
  go:async v=>{S.scr=v;if(v==='profile'){await loadMe()}if(v==='home'||v==='catalog'||v==='rating'){S.sub=''}render()},
  open:v=>{S.cur=S.list.find(c=>c.id==v);S.back=S.scr;S.scr='item';render()},
