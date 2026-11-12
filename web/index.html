@@ -32,7 +32,13 @@ button:focus-visible,.row:focus-visible,.chip:focus-visible{outline:2px solid va
 </style></head><body><div id="app"></div><nav id="nav"></nav><div id="toast" role="status"></div>
 <script>
 const tg = window.Telegram?.WebApp;
-
+alert(
+  'Telegram: ' + !!window.Telegram +
+  '\nWebApp: ' + !!tg +
+  '\ninitData: ' + !!tg?.initData +
+  '\nUser: ' + !!tg?.initDataUnsafe?.user +
+  '\nPlatform: ' + (tg?.platform || 'нет')
+);
 if (tg) {
     tg.ready();
     tg.expand();
