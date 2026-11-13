@@ -1,3 +1,4 @@
+```html
 <!doctype html>
 <html lang="ru"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="color-scheme" content="dark">
@@ -33,7 +34,6 @@ button:focus-visible,.row:focus-visible,.chip:focus-visible{outline:2px solid va
 .scroll{max-height:390px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-right:2px}
 .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.tile{background:var(--p);border:1px solid var(--l);border-radius:16px;padding:16px 12px;text-align:center;cursor:pointer;font-size:26px}.tile b{display:block;font-size:15px;margin-top:6px}.tile small{display:block}
 .dot{background:var(--no);color:#fff;border-radius:99px;padding:1px 7px;font-size:12px}.unread{border-color:var(--c)}
-
 </style></head><body><div id="app"></div><nav id="nav"></nav><div id="toast" role="status"></div>
 <script>
 const tg = window.Telegram?.WebApp;
@@ -62,7 +62,9 @@ const list=a=>a.length?a.map(row).join(''):empty;
 const V={
 home:()=>{const top=S.top||[],rec=[...S.list].sort((x,y)=>y.growth-x.growth).filter(c=>c.growth>0&&!top.some(t=>t.id===c.id)).slice(0,5),pop=[...S.cats].sort((x,y)=>y.groups-x.groups).slice(0,4);
  return `<div class="top"><span class="logo">TendorX</span><button class="btn sm gh" data-a="bell" aria-label="Уведомления">🔔${S.me?.unread?` <b class="dot">${S.me.unread}</b>`:''}</button></div>
- <div class="hero-banner"><img src="assets/robot.webp" alt="TendorX — продвигай, находи, расти" width="738" height="461" fetchpriority="high"></div>
+ <a href="https://t.me/TendorX" class="hero-banner" target="_blank" rel="noopener" onclick="if(window.Telegram?.WebApp?.openTelegramLink){Telegram.WebApp.openTelegramLink('https://t.me/TendorX');return false;}">
+ <img src="assets/robot.webp" alt="TendorX — перейти в Telegram-канал" width="738" height="461" fetchpriority="high">
+ </a>
  <input id="q" type="search" placeholder="Поиск групп, каналов, категорий…" value="${e(S.q)}" aria-label="Поиск">
  ${IN?authNote():diag()}
  ${S.q?`<h3>Результаты поиска</h3>${list(S.list.slice(0,50))}`:`<div class="top"><h3 style="margin:0">Популярные категории</h3><a class="mut" data-a="go" data-v="cats" style="cursor:pointer">Все →</a></div><div class="chips" style="margin-top:10px">${pop.map(c=>`<div class="chip" tabindex="0" data-a="cat" data-v="${c.id}">${e(c.icon)} ${e(c.title)}</div>`).join('')}</div>
@@ -141,46 +143,19 @@ const act={
    else{S.add={step:'form',u:m[1]}}}render()},
  submit:async()=>{
     S.err='';
-
     const title=$('#f_t').value.trim();
     const description=$('#f_d').value.trim();
     const category=$('#f_c').value;
     const kind=$('#f_k').value;
     const tags=$('#f_g').value.trim();
-
-    if(!title){
-      S.err='Введите название сообщества';
-      render();
-      return;
-    }
-
-    if(!category){
-      S.err='Выберите категорию';
-      render();
-      return;
-    }
-
-    if(tags && tags.split(',').filter(x=>x.trim()).length>5){
-      S.err='Можно указать не более 5 тегов';
-      render();
-      return;
-    }
-
+    if(!title){S.err='Введите название сообщества';render();return}
+    if(!category){S.err='Выберите категорию';render();return}
+    if(tags && tags.split(',').filter(x=>x.trim()).length>5){S.err='Можно указать не более 5 тегов';render();return}
     try{
-      await api('submit',{
-        username:S.add.u,
-        title,
-        description,
-        category,
-        kind,
-        tags
-      });
+      await api('submit',{username:S.add.u,title,description,category,kind,tags});
       S.add={step:'done'};
       await loadMe();
-    }catch(x){
-      S.err=x.message;
-    }
-
+    }catch(x){S.err=x.message}
     render();
   }
 };
@@ -190,3 +165,4 @@ let dt;document.addEventListener('input',ev=>{if(ev.target.id!=='q')return;clear
 document.addEventListener('input',ev=>{if(ev.target.id!=='cq')return;S.cq=ev.target.value;$('#cg').innerHTML=catGrid()});
 (async()=>{await Promise.all([loadPub(),loadMe()]);render()})();
 </script></body></html>
+```
