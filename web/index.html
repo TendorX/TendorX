@@ -29,6 +29,11 @@ nav button{background:none;border:0;color:var(--s);font:12px inherit;display:gri
 nav .plus i{width:52px;height:52px;margin-top:-26px;border-radius:50%;display:grid;place-items:center;font-size:30px;color:#fff;background:linear-gradient(180deg,#38a0ff,#1456e8);box-shadow:0 0 22px rgba(46,168,255,.7)}
 #toast{position:fixed;left:50%;bottom:104px;transform:translateX(-50%);background:#0d1f4d;border:1px solid var(--c);padding:11px 18px;border-radius:14px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:9;max-width:90%;text-align:center}#toast.show{opacity:1}
 button:focus-visible,.row:focus-visible,.chip:focus-visible{outline:2px solid var(--c);outline-offset:2px}@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.robot{width:100%;display:block;border-radius:18px;animation:glow 4s ease-in-out infinite}@keyframes glow{50%{filter:drop-shadow(0 0 14px rgba(46,168,255,.6))}}
+.scroll{max-height:390px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-right:2px}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.tile{background:var(--p);border:1px solid var(--l);border-radius:16px;padding:16px 12px;text-align:center;cursor:pointer;font-size:26px}.tile b{display:block;font-size:15px;margin-top:6px}.tile small{display:block}
+.dot{background:var(--no);color:#fff;border-radius:99px;padding:1px 7px;font-size:12px}.unread{border-color:var(--c)}
+@media(prefers-reduced-motion:reduce){.robot{animation:none}}
 </style></head><body><div id="app"></div><nav id="nav"></nav><div id="toast" role="status"></div>
 <script>
 const tg = window.Telegram?.WebApp;
@@ -46,22 +51,26 @@ const ST={pending:['На модерации','Заявка проверяетс�
 let tt;const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2600)};
 async function api(action,b={}){const r=await fetch(CFG.url+'/functions/v1/api',{method:'POST',headers:{'Content-Type':'application/json',apikey:CFG.anon,Authorization:'Bearer '+CFG.anon},body:JSON.stringify({action,initData:tg?.initData||'',...b})});
  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||j.message||('Ошибка сервера ('+r.status+')'));return j.data}
-async function loadPub(){const[a,b]=await Promise.all([sb.rpc('tx_categories'),sb.rpc('tx_catalog',{p_q:S.q||null,p_cat:S.cat,p_sort:S.sort,p_limit:200})]);
- if(a.error||b.error){S.err='Не удалось загрузить каталог. Проверьте config.js и миграцию.';return}S.err='';S.cats=a.data;S.list=b.data}
+async function loadPub(){const[a,b,t]=await Promise.all([sb.rpc('tx_categories'),sb.rpc('tx_catalog',{p_q:S.q||null,p_cat:S.cat,p_sort:S.sort,p_limit:200}),sb.rpc('tx_catalog',{p_sort:'top',p_limit:10})]);
+ if(a.error||b.error){S.err='Не удалось загрузить каталог. Проверьте config.js и миграцию.';return}S.err='';S.cats=a.data;S.list=b.data;S.top=t.data||[]}
 async function loadMe(){if(IN)try{S.me=await api('me');S.authErr=''}catch(x){S.authErr=x.message;toast(x.message)}}
 const voted=id=>S.me?.voted?.includes(id),fav=id=>S.me?.favs?.includes(id),staff=()=>['master_admin','admin','moderator','analyst'].includes(S.me?.role);
 const av=c=>`<div class="av" style="--h:${[...c.title].reduce((a,x)=>a+x.charCodeAt(0),0)%360}">${e([...c.title][0]?.toUpperCase()||'?')}</div>`;
-const row=c=>`<div class="row" tabindex="0" data-a="open" data-v="${c.id}">${av(c)}<div class="g"><b>${e(c.title)}</b><small>#${c.rank} · ${N(c.votes)} голосов · ${e(c.category||'')}</small></div><button class="btn sm ${voted(c.id)?'on':''}" data-a="vote" data-v="${c.id}">${voted(c.id)?'Голос ✓':'Голосовать'}</button></div>`;
+const row=c=>`<div class="row" tabindex="0" data-a="open" data-v="${c.id}">${av(c)}<div class="g"><b>${e(c.title)}</b><small>#${c.rank} · ${N(c.votes)} голосов · ${e(c.category||'')}</small></div><button class="btn sm ${voted(c.id)?'on':''}" data-a="vote" data-v="${c.id}">${voted(c.id)?'Отменить голос':'Голосовать'}</button></div>`;
 const empty='<div class="card mut">Пока нет сообществ. Добавьте первое — это бесплатно.</div>';
 const list=a=>a.length?a.map(row).join(''):empty;
 const V={
-home:()=>`<div class="top"><span class="logo">TendorX</span><button class="btn sm gh" data-a="go" data-v="profile">🔔 ${S.me?.notes?.length||''}</button></div>
+home:()=>{const top=S.top||[],rec=[...S.list].sort((x,y)=>y.growth-x.growth).filter(c=>c.growth>0&&!top.some(t=>t.id===c.id)).slice(0,5),pop=[...S.cats].sort((x,y)=>y.groups-x.groups).slice(0,4);
+ return `<div class="top"><span class="logo">TendorX</span><button class="btn sm gh" data-a="bell" aria-label="Уведомления">🔔${S.me?.unread?` <b class="dot">${S.me.unread}</b>`:''}</button></div>
+ <div class="card hero" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center"><div><h2 style="margin:0 0 6px">Добро пожаловать в TendorX!</h2><span class="mut">Продвигай. Находи. Расти.</span></div><img class="robot" src="assets/robot.webp" alt="Робот TendorX" width="640" height="335"></div>
  <input id="q" type="search" placeholder="Поиск групп, каналов, категорий…" value="${e(S.q)}" aria-label="Поиск">
- <div class="card hero"><h2>Расти вместе с TendorX</h2><span class="mut">Лучшие Telegram-сообщества в одном месте. Голосуй бесплатно, находи полезное.</span></div>
+ <div class="card hero"><h2 style="margin:0 0 6px">Твой мир сообществ начинается здесь!</h2><span class="mut">Находи интересные каналы, развивай свои сообщества и становись частью TendorX.</span></div>
  ${IN?authNote():diag()}
- <h3>Популярные категории</h3><div class="chips">${S.cats.map(c=>`<div class="chip" tabindex="0" data-a="cat" data-v="${c.id}">${e(c.icon)} ${e(c.title)}</div>`).join('')}</div>
- <h3>${S.q?'Результаты поиска':'Топ сообщества'}</h3>${list(S.list.slice(0,S.q?50:5))}`,
-catalog:()=>`<h2>Каталог</h2><input id="q" type="search" placeholder="Поиск…" value="${e(S.q)}" aria-label="Поиск">
+ ${S.q?`<h3>Результаты поиска</h3>${list(S.list.slice(0,50))}`:`<div class="top"><h3 style="margin:0">Популярные категории</h3><a class="mut" data-a="go" data-v="cats" style="cursor:pointer">Все →</a></div><div class="chips" style="margin-top:10px">${pop.map(c=>`<div class="chip" tabindex="0" data-a="cat" data-v="${c.id}">${e(c.icon)} ${e(c.title)}</div>`).join('')}</div>
+ <h3>🏆 Топ сообществ</h3><div class="scroll" tabindex="0" aria-label="Топ сообществ">${list(top)}</div>
+ ${rec.length?`<h3>Рекомендуем</h3>${rec.map(row).join('')}`:''}`}`},
+cats:()=>`<h2>Категории</h2><input id="cq" type="search" placeholder="Поиск по категориям…" value="${e(S.cq||'')}" aria-label="Поиск по категориям"><div class="tiles" id="cg">${catGrid()}</div>`,
+catalog:()=>`<button class="btn sm gh" data-a="go" data-v="cats">← Все категории</button><h2 style="margin-top:12px">Каталог</h2><input id="q" type="search" placeholder="Поиск…" value="${e(S.q)}" aria-label="Поиск">
  <div class="chips"><div class="chip ${S.cat?'':'on'}" data-a="cat" data-v="">Все</div>${S.cats.map(c=>`<div class="chip ${S.cat===c.id?'on':''}" data-a="cat" data-v="${c.id}">${e(c.icon)} ${e(c.title)} · ${c.groups}</div>`).join('')}</div>
  <div class="chips">${[['top','Популярные'],['new','Новые'],['growth','Растущие']].map(([k,t])=>`<div class="chip ${S.sort===k?'on':''}" data-a="sort" data-v="${k}">${t}</div>`).join('')}</div>${list(S.list)}`,
 rating:()=>`<h2>Рейтинг</h2><div class="note">Органический рейтинг: только подтверждённые голоса пользователей. Платное продвижение на него не влияет.</div>
@@ -69,7 +78,7 @@ rating:()=>`<h2>Рейтинг</h2><div class="note">Органический р
 item:()=>{const c=S.cur;if(!c)return empty;return`<button class="btn sm gh" data-a="go" data-v="${S.back||'home'}">← Назад</button>
  <div class="card" style="text-align:center;margin-top:12px">${av(c).replace('class="av"','class="av" style="width:84px;height:84px;font-size:34px;margin:0 auto 10px;--h:'+([...c.title].reduce((a,x)=>a+x.charCodeAt(0),0)%360)+'"')}<h2>${e(c.title)}</h2><span class="badge">${e(c.category||'')}</span>
  <div class="grid" style="margin-top:14px"><div class="stat"><b>#${c.rank}</b><small>Место</small></div><div class="stat"><b>${N(c.votes)}</b><small>Голосов</small></div><div class="stat"><b>+${N(c.growth)}</b><small>За 7 дней</small></div></div></div>
- <div style="display:flex;gap:10px"><button class="btn w ${voted(c.id)?'on':''}" data-a="vote" data-v="${c.id}">${voted(c.id)?'Вы проголосовали ✓':'Проголосовать'}</button><button class="btn gh" data-a="fav" data-v="${c.id}" aria-label="Избранное">${fav(c.id)?'★':'☆'}</button></div>
+ <div style="display:flex;gap:10px"><button class="btn w ${voted(c.id)?'on':''}" data-a="vote" data-v="${c.id}">${voted(c.id)?'Отменить голос':'Проголосовать'}</button><button class="btn gh" data-a="fav" data-v="${c.id}" aria-label="Избранное">${fav(c.id)?'★':'☆'}</button></div>
  <p style="margin:14px 0">${e(c.description)||'<span class="mut">Описание не указано</span>'}</p>${(c.tags||[]).map(t=>`<span class="tag">${e(t)}</span>`).join('')}
  <button class="btn gh w" style="margin-top:10px" data-a="tg" data-v="${c.id}">Перейти в Telegram</button>`},
 add:()=>{const a=S.add;let h='<h2>Добавить сообщество</h2>';
@@ -86,32 +95,44 @@ add:()=>{const a=S.add;let h='<h2>Добавить сообщество</h2>';
  return h+`<input id="lnk" placeholder="https://t.me/your_group" value="${e(a.v||'')}" autocapitalize="off" autocomplete="off"><div class="err">${e(S.err)}</div><button class="btn w" data-a="find">Найти сообщество</button>`},
 profile:()=>{const m=S.me,sub=S.sub;let h=`<div class="top"><span class="logo">Профиль</span></div>`;
  if(!IN)return h+diag();h+=authNote();
- const u=tg.initDataUnsafe?.user||{};h+=`<div class="card" style="text-align:center"><b style="font-size:20px">${e(u.first_name||'Пользователь')}</b><br><span class="badge">${e(m?.role||'user')}</span>
+ const u=tg.initDataUnsafe?.user||{};h+=`<div class="card" style="text-align:center"><b style="font-size:20px">${e(u.first_name||'Пользователь')}</b><br><span class="badge">${e(RL[m?.role||'user']||'Пользователь')}</span>
  <div class="grid" style="margin-top:12px"><div class="stat"><b>${m?.voted?.length||0}</b><small>Голосов</small></div><div class="stat"><b>${m?.communities?.length||0}</b><small>Групп</small></div><div class="stat"><b>${m?.favs?.length||0}</b><small>Избранное</small></div></div></div>`;
- const men=[['comms','Мои сообщества'],['favs','Избранное'],['votes','Мои голосования'],['notes','Уведомления '+(m?.notes?.length||'')]];if(staff())men.push(['admin','Панель модерации']);
+ const men=[['comms','Мои сообщества'],['favs','Избранное'],['votes','Мои голосования'],['notes','Уведомления '+(m?.unread?'('+m.unread+')':'')]];if(staff())men.push(['admin','Панель модерации']);
  h+=men.map(([k,t])=>`<div class="row" tabindex="0" data-a="sub" data-v="${k}"><div class="g"><b>${t}</b></div><span>›</span></div>`).join('');
  const byIds=ids=>S.list.filter(c=>ids?.includes(c.id));
  if(sub==='comms')h+='<h3>Мои сообщества</h3>'+(m.communities.length?m.communities.map(c=>`<div class="card"><b>${e(c.title)}</b> <span class="badge">${ST[c.status][0]}</span><br><small>@${e(c.username)} · ${N(c.votes)} голосов · ${N(c.clicks)} переходов</small><div class="mut" style="margin-top:6px">${e(c.reason||ST[c.status][1])}</div></div>`).join(''):'<div class="card mut">У вас пока нет сообществ.</div>');
  if(sub==='favs')h+='<h3>Избранное</h3>'+list(byIds(m.favs));if(sub==='votes')h+='<h3>Мои голосования</h3>'+list(byIds(m.voted));
- if(sub==='notes')h+='<h3>Уведомления</h3>'+(m.notes.length?m.notes.map(n=>`<div class="card"><b>${e(n.title)}</b><br><small>${e(n.body)} · ${new Date(n.at).toLocaleString('ru')}</small></div>`).join(''):'<div class="card mut">Уведомлений нет.</div>');
- if(sub==='admin'&&S.adm){const s=S.adm.s;h+=`<h3>Платформа</h3><div class="grid">${[['users','Пользователей'],['active24h','Активных 24ч'],['approved','Групп'],['pending','На модерации'],['votes','Голосов'],['clicks','Переходов']].map(([k,t])=>`<div class="card stat"><b>${N(s[k])}</b><small>${t}</small></div>`).join('')}</div>
+ if(sub==='notes')h+='<h3>Уведомления</h3>'+(m.unread?'<button class="btn sm gh" style="margin-bottom:10px" data-a="readall">Отметить все как прочитанные</button>':'')+(m.notes.length?m.notes.map(n=>`<div class="card ${n.read?'':'unread'}" tabindex="0" data-a="nread" data-v="${n.id}"><b>${n.read?'':'● '}${e(n.title)}</b><br><small>${e(n.body)} · ${new Date(n.at).toLocaleString('ru')}${n.read?' · Прочитано':''}</small></div>`).join(''):'<div class="card mut">Уведомлений нет.</div>');
+ if(sub==='admin'&&S.adm){const s=S.adm.s,adm=['master_admin','admin'].includes(m.role);h+=`<h3>Платформа</h3><div class="grid">${[['users','Пользователей'],['active24h','Активных 24ч'],['approved','Групп'],['pending','На модерации'],['votes','Голосов'],['clicks','Переходов']].map(([k,t])=>`<div class="card stat"><b>${N(s[k])}</b><small>${t}</small></div>`).join('')}</div>
  <h3>Заявки (${S.adm.q.length})</h3>${S.adm.q.length?S.adm.q.map(c=>`<div class="card"><b>${e(c.title)}</b> <small>@${e(c.username)} · ${e(c.category||'')} · ${e(c.owner||'')}</small><p class="mut" style="margin:6px 0">${e(c.description)}</p>
- <input id="r${c.id}" placeholder="Причина (для отклонения / доработки)"><div style="display:flex;gap:8px"><button class="btn sm ok" data-a="mod" data-v="${c.id}|approved">Одобрить</button><button class="btn sm gh" data-a="mod" data-v="${c.id}|changes">На доработку</button><button class="btn sm no" data-a="mod" data-v="${c.id}|rejected">Отклонить</button></div></div>`).join(''):'<div class="card mut">Новых заявок нет.</div>'}`}
+ <input id="r${c.id}" placeholder="Причина (для отклонения / доработки)"><div style="display:flex;gap:8px"><button class="btn sm ok" data-a="mod" data-v="${c.id}|approved">Одобрить</button><button class="btn sm gh" data-a="mod" data-v="${c.id}|changes">На доработку</button><button class="btn sm no" data-a="mod" data-v="${c.id}|rejected">Отклонить</button></div></div>`).join(''):'<div class="card mut">Новых заявок нет.</div>'}
+ <h3>Сообщества и переходы</h3><div class="note">Переход в Telegram — это не подтверждённая подписка.</div>${S.adm.c.length?S.adm.c.map(c=>`<div class="card"><b>${e(c.title)}</b><br><small>@${e(c.username)} · голосов ${N(c.votes)} · переходов ${N(c.clicks)} (уникальных ${N(c.unique_clicks)}, за 7 дн. ${N(c.clicks_7d)})</small>${adm?`<div style="margin-top:8px"><button class="btn sm no" data-a="del" data-v="${c.id}">Удалить из каталога</button></div>`:''}</div>`).join(''):'<div class="card mut">Нет опубликованных сообществ.</div>'}
+ ${S.adm.d.length?`<h3>Удалённые (${S.adm.d.length})</h3>`+S.adm.d.map(c=>`<div class="card"><b>${e(c.title)}</b> <small>@${e(c.username)}</small>${adm?`<div style="margin-top:8px"><button class="btn sm ok" data-a="restore" data-v="${c.id}">Восстановить</button></div>`:''}</div>`).join(''):''}`}
  return h+'<p class="mut" style="margin-top:16px;text-align:center">Выход: закройте мини-приложение — сессия привязана к Telegram.</p>'}};
-const NAV=[['home','⌂','Главная'],['catalog','◫','Каталог'],['add','+','Добавить','plus'],['rating','☆','Рейтинг'],['profile','☺','Профиль']];
+const NAV=[['home','⌂','Главная'],['cats','◫','Категории'],['add','+','Добавить','plus'],['rating','☆','Рейтинг'],['profile','☺','Профиль']];
 function render(){$('#app').innerHTML=S.err&&!S.cats.length?`<div class="card err">${e(S.err)}</div>`:V[S.scr]();
- $('#nav').innerHTML=NAV.map(([k,i,t,c])=>`<button class="${c||''} ${S.scr===k||(S.scr==='item'&&k==='catalog')?'on':''}" data-a="go" data-v="${k}"><i>${i}</i>${t}</button>`).join('');scrollTo(0,0)}
+ $('#nav').innerHTML=NAV.map(([k,i,t,c])=>`<button class="${c||''} ${S.scr===k||((S.scr==='catalog'||S.scr==='item')&&k==='cats')?'on':''}" data-a="go" data-v="${k}"><i>${i}</i>${t}</button>`).join('');scrollTo(0,0)}
 const need = () => IN || (toast('Откройте приложение через кнопку бота в Telegram'), false);
+const RL={user:'Пользователь',master_admin:'Главный администратор',admin:'Администратор',moderator:'Модератор',support:'Поддержка',analyst:'Аналитик'};
+const catGrid=()=>{const q=(S.cq||'').toLowerCase(),a=S.cats.filter(c=>c.title.toLowerCase().includes(q));return `<div class="tile" tabindex="0" data-a="cat" data-v="">✦<b>Все категории</b><small>${S.cats.reduce((s,c)=>s+c.groups,0)} групп</small></div>`+(a.map(c=>`<div class="tile" tabindex="0" data-a="cat" data-v="${c.id}">${e(c.icon)}<b>${e(c.title)}</b><small>${c.groups} групп</small></div>`).join('')||'<div class="card mut" style="grid-column:1/-1">Ничего не найдено</div>')};
+async function admLoad(){const[s,q,c,d]=await Promise.all([api('stats'),api('queue'),api('admin_list',{deleted:false}),api('admin_list',{deleted:true})]);S.adm={s,q,c,d}}
+const markRead=()=>setTimeout(async()=>{if(S.sub!=='notes'||!S.me?.unread)return;try{await api('notes_read',{});await loadMe();render()}catch{}},1500);
+const ask=(m,cb)=>tg?.showConfirm?tg.showConfirm(m,ok=>ok&&cb()):(confirm(m)&&cb());
 const act={
- go:async v=>{S.scr=v;if(v==='profile'){await loadMe()}if(v==='home'||v==='catalog'||v==='rating'){S.sub=''}render()},
+ bell:async()=>{S.scr='profile';await loadMe();S.sub='notes';render();markRead()},
+ readall:async()=>{try{await api('notes_read',{});await loadMe();render()}catch(x){toast(x.message)}},
+ nread:async v=>{try{await api('notes_read',{id:+v});await loadMe();render()}catch(x){toast(x.message)}},
+ del:v=>ask('Удалить сообщество из каталога? Его можно будет восстановить.',async()=>{try{await api('admin_delete',{id:+v});toast('Удалено');await admLoad();await loadPub();render()}catch(x){toast(x.message)}}),
+ restore:async v=>{try{await api('admin_restore',{id:+v});toast('Восстановлено');await admLoad();await loadPub();render()}catch(x){toast(x.message)}},
+ go:async v=>{S.scr=v;if(v==='profile'){await loadMe()}if(v==='cats'){S.cat=null;S.q='';S.cq='';await loadPub()}if(v==='home'||v==='catalog'||v==='rating'){S.sub=''}render()},
  open:v=>{S.cur=S.list.find(c=>c.id==v);S.back=S.scr;S.scr='item';render()},
- cat:async v=>{S.cat=v?+v:null;if(S.scr==='home')S.scr='catalog';await loadPub();render()},
+ cat:async v=>{S.cat=v?+v:null;if(S.scr==='home'||S.scr==='cats')S.scr='catalog';await loadPub();render()},
  sort:async v=>{S.sort=v;await loadPub();render()},
- vote:async v=>{if(!need())return;try{const r=await api('vote',{id:+v});toast(r.added?'Голос засчитан':'Вы уже голосовали за это сообщество');await Promise.all([loadPub(),loadMe()]);if(S.scr==='item')S.cur=S.list.find(c=>c.id==v);render()}catch(x){toast(x.message)}},
+ vote:async v=>{if(!need())return;try{if(voted(+v)){await api('unvote',{id:+v});toast('Голос отменён')}else{const r=await api('vote',{id:+v});toast(r.added?'Голос засчитан':'Вы уже голосовали за это сообщество')}await Promise.all([loadPub(),loadMe()]);if(S.scr==='item')S.cur=S.list.find(c=>c.id==v);render()}catch(x){toast(x.message)}},
  fav:async v=>{if(!need())return;try{const r=await api('fav',{id:+v});toast(r?'Добавлено в избранное':'Удалено из избранного');await loadMe();render()}catch(x){toast(x.message)}},
  tg:async v=>{const c=S.cur;if(!c||!/^[A-Za-z0-9_]{5,32}$/.test(c.username))return;if(IN)api('click',{id:+v}).catch(()=>{});const u='https://t.me/'+c.username;tg?.openTelegramLink?tg.openTelegramLink(u):open(u,'_blank','noopener')},
- sub:async v=>{S.sub=S.sub===v?'':v;if(v==='admin'&&S.sub){try{const[s,q]=await Promise.all([api('stats'),api('queue')]);S.adm={s,q}}catch(x){toast(x.message);S.sub=''}}render()},
- mod:async v=>{const[id,st]=v.split('|'),r=$('#r'+id)?.value||'';try{await api('moderate',{id:+id,status:st,reason:r});toast('Готово');const[s,q]=await Promise.all([api('stats'),api('queue')]);S.adm={s,q};await loadPub();render()}catch(x){toast(x.message)}},
+ sub:async v=>{S.sub=S.sub===v?'':v;if(v==='notes'&&S.sub)markRead();if(v==='admin'&&S.sub){try{await admLoad()}catch(x){toast(x.message);S.sub=''}}render()},
+ mod:async v=>{const[id,st]=v.split('|'),r=$('#r'+id)?.value||'';try{await api('moderate',{id:+id,status:st,reason:r});toast('Готово');await admLoad();await loadPub();render()}catch(x){toast(x.message)}},
  addtab:v=>{S.add={step:'input',tab:v};S.err='';render()},addreset:()=>{S.add={step:'input',tab:'link'};S.err='';render()},
  find:()=>{const v=$('#lnk').value.trim();S.add.v=v;S.err='';
   if(/t\.me\/\+|joinchat/i.test(v))S.err='Закрытые сообщества проверяются вручную — обратитесь в поддержку.';
@@ -167,5 +188,6 @@ const act={
 document.addEventListener('click',ev=>{const t=ev.target.closest('[data-a]');if(t)act[t.dataset.a]?.(t.dataset.v)});
 document.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.matches('.row,.chip'))ev.target.click()});
 let dt;document.addEventListener('input',ev=>{if(ev.target.id!=='q')return;clearTimeout(dt);dt=setTimeout(async()=>{S.q=ev.target.value.trim();await loadPub();const p=$('#app');const c=p.innerHTML;render();const q=$('#q');if(q){q.focus();q.setSelectionRange(q.value.length,q.value.length)}},350)});
+document.addEventListener('input',ev=>{if(ev.target.id!=='cq')return;S.cq=ev.target.value;$('#cg').innerHTML=catGrid()});
 (async()=>{await Promise.all([loadPub(),loadMe()]);render()})();
 </script></body></html>
