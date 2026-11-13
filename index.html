@@ -1,16 +1,9 @@
-
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="0; url=./web/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TendorX</title>
-</head>
-<body>
-  <p>Переход на TendorX...</p>
-  <script>
-    window.location.replace('./web/');
-  </script>
-</body>
-</html>
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>TendorX</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script>
+// Переходим в /web/ и ПЕРЕНОСИМ параметры и #hash: в хэше Telegram передаёт данные входа (tgWebAppData).
+location.replace(location.pathname.replace(/\/?$/, '/') + 'web/' + location.search + location.hash);
+</script>
+<noscript><meta http-equiv="refresh" content="0;url=web/"></noscript>
+</head><body style="background:#020510"></body></html>
