@@ -35,7 +35,9 @@ const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 // Вход возможен только когда Telegram передал подписанный initData (его проверяет сервер).
 const IN = !!(tg && tg.initData);
-const diag = () => `<div class="note"><b>Telegram не передал данные входа.</b> Откройте приложение через кнопку меню бота или ссылку Mini App (t.me/бот/приложение), а не через обычную ссылку, кнопку-ссылку или браузер.<br><small>Диагностика: WebApp — ${tg?'найден':'нет'}, initData — ${(tg?.initData||'').length} симв., платформа — ${e(tg?.platform||'—')}</small></div>`;
+const BUILD='build 3';
+const authNote = () => S.authErr ? `<div class="note"><b>Сервер не принял вход:</b> ${e(S.authErr)}<br><small>${BUILD}</small></div>` : '';
+const diag = () => `<div class="note"><b>Telegram не передал данные входа.</b> Откройте приложение через кнопку меню бота или ссылку Mini App (t.me/бот/приложение), а не через обычную ссылку, кнопку-ссылку или браузер.<br><small>Диагностика: WebApp — ${tg?'найден':'нет'}, initData — ${(tg?.initData||'').length} симв., платформа — ${e(tg?.platform||'—')}, ${BUILD}</small></div>`;
 const sb = supabase.createClient(CFG.url, CFG.anon);
 const S={cats:[],list:[],me:null,scr:'home',q:'',cat:null,sort:'top',cur:null,add:{step:'input',tab:'link'},sub:'',adm:null,err:''};
 const $=s=>document.querySelector(s),e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -43,10 +45,10 @@ const N=n=>n>=1e6?(n/1e6).toFixed(1)+'M':n>=1e3?(n/1e3).toFixed(1)+'K':String(n)
 const ST={pending:['На модерации','Заявка проверяется. До одобрения группа не видна в каталоге.'],changes:['Нужны исправления','Исправьте данные и отправьте заявку снова.'],approved:['Одобрено','Сообщество опубликовано в каталоге.'],rejected:['Отклонено','Заявка не прошла проверку.'],hidden:['Скрыто','Сообщество скрыто из каталога.'],blocked:['Заблокировано','Публикация запрещена.'],draft:['Черновик','']};
 let tt;const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2600)};
 async function api(action,b={}){const r=await fetch(CFG.url+'/functions/v1/api',{method:'POST',headers:{'Content-Type':'application/json',apikey:CFG.anon,Authorization:'Bearer '+CFG.anon},body:JSON.stringify({action,initData:tg?.initData||'',...b})});
- const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||'Ошибка сервера');return j.data}
+ const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||j.message||('Ошибка сервера ('+r.status+')'));return j.data}
 async function loadPub(){const[a,b]=await Promise.all([sb.rpc('tx_categories'),sb.rpc('tx_catalog',{p_q:S.q||null,p_cat:S.cat,p_sort:S.sort,p_limit:200})]);
  if(a.error||b.error){S.err='Не удалось загрузить каталог. Проверьте config.js и миграцию.';return}S.err='';S.cats=a.data;S.list=b.data}
-async function loadMe(){if(IN)try{S.me=await api('me')}catch(x){toast(x.message)}}
+async function loadMe(){if(IN)try{S.me=await api('me');S.authErr=''}catch(x){S.authErr=x.message;toast(x.message)}}
 const voted=id=>S.me?.voted?.includes(id),fav=id=>S.me?.favs?.includes(id),staff=()=>['master_admin','admin','moderator','analyst'].includes(S.me?.role);
 const av=c=>`<div class="av" style="--h:${[...c.title].reduce((a,x)=>a+x.charCodeAt(0),0)%360}">${e([...c.title][0]?.toUpperCase()||'?')}</div>`;
 const row=c=>`<div class="row" tabindex="0" data-a="open" data-v="${c.id}">${av(c)}<div class="g"><b>${e(c.title)}</b><small>#${c.rank} · ${N(c.votes)} голосов · ${e(c.category||'')}</small></div><button class="btn sm ${voted(c.id)?'on':''}" data-a="vote" data-v="${c.id}">${voted(c.id)?'Голос ✓':'Голосовать'}</button></div>`;
@@ -56,7 +58,7 @@ const V={
 home:()=>`<div class="top"><span class="logo">TendorX</span><button class="btn sm gh" data-a="go" data-v="profile">🔔 ${S.me?.notes?.length||''}</button></div>
  <input id="q" type="search" placeholder="Поиск групп, каналов, категорий…" value="${e(S.q)}" aria-label="Поиск">
  <div class="card hero"><h2>Расти вместе с TendorX</h2><span class="mut">Лучшие Telegram-сообщества в одном месте. Голосуй бесплатно, находи полезное.</span></div>
- ${IN?'':diag()}
+ ${IN?authNote():diag()}
  <h3>Популярные категории</h3><div class="chips">${S.cats.map(c=>`<div class="chip" tabindex="0" data-a="cat" data-v="${c.id}">${e(c.icon)} ${e(c.title)}</div>`).join('')}</div>
  <h3>${S.q?'Результаты поиска':'Топ сообщества'}</h3>${list(S.list.slice(0,S.q?50:5))}`,
 catalog:()=>`<h2>Каталог</h2><input id="q" type="search" placeholder="Поиск…" value="${e(S.q)}" aria-label="Поиск">
@@ -71,7 +73,7 @@ item:()=>{const c=S.cur;if(!c)return empty;return`<button class="btn sm gh" data
  <p style="margin:14px 0">${e(c.description)||'<span class="mut">Описание не указано</span>'}</p>${(c.tags||[]).map(t=>`<span class="tag">${e(t)}</span>`).join('')}
  <button class="btn gh w" style="margin-top:10px" data-a="tg" data-v="${c.id}">Перейти в Telegram</button>`},
 add:()=>{const a=S.add;let h='<h2>Добавить сообщество</h2>';
- if(!IN)return h+diag();
+ if(!IN)return h+diag();h+=authNote();
  if(a.step==='done')return h+`<div class="card"><h3 style="margin-top:0">Заявка отправлена</h3><span class="mut">${ST.pending[1]} Статус смотрите в профиле → Мои сообщества.</span></div><button class="btn w" data-a="go" data-v="profile">Открыть профиль</button>`;
  if(a.step==='form')return h+`<div class="card"><b>@${e(a.u)}</b><div class="note">Данные Telegram не получены автоматически: бот TendorX ещё не подключён. Введите данные вручную. Публичная ссылка не доказывает владение — модератор проверит права перед публикацией.</div>
  <input id="f_t" placeholder="Название" maxlength="80"><textarea id="f_d" placeholder="Описание" maxlength="500" rows="3"></textarea>
@@ -83,7 +85,7 @@ add:()=>{const a=S.add;let h='<h2>Добавить сообщество</h2>';
  if(a.tab!=='link')return h+'<div class="card mut">Подключение через TendorX Bot ещё не настроено. Пока доступно добавление по ссылке. Настройка бота описана в README.</div>';
  return h+`<input id="lnk" placeholder="https://t.me/your_group" value="${e(a.v||'')}" autocapitalize="off" autocomplete="off"><div class="err">${e(S.err)}</div><button class="btn w" data-a="find">Найти сообщество</button>`},
 profile:()=>{const m=S.me,sub=S.sub;let h=`<div class="top"><span class="logo">Профиль</span></div>`;
- if(!IN)return h+diag();
+ if(!IN)return h+diag();h+=authNote();
  const u=tg.initDataUnsafe?.user||{};h+=`<div class="card" style="text-align:center"><b style="font-size:20px">${e(u.first_name||'Пользователь')}</b><br><span class="badge">${e(m?.role||'user')}</span>
  <div class="grid" style="margin-top:12px"><div class="stat"><b>${m?.voted?.length||0}</b><small>Голосов</small></div><div class="stat"><b>${m?.communities?.length||0}</b><small>Групп</small></div><div class="stat"><b>${m?.favs?.length||0}</b><small>Избранное</small></div></div></div>`;
  const men=[['comms','Мои сообщества'],['favs','Избранное'],['votes','Мои голосования'],['notes','Уведомления '+(m?.notes?.length||'')]];if(staff())men.push(['admin','Панель модерации']);
