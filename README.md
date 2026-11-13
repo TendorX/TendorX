@@ -1,4 +1,5 @@
 ## Hi there 👋
+Короче меня зовут Игаарь, шо тут происходит я вообще не в курсе...
 
 <!--
 **TendorX/TendorX** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
