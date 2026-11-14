@@ -40,7 +40,7 @@ const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 // Вход возможен только когда Telegram передал подписанный initData (его проверяет сервер).
 const IN = !!(tg && tg.initData);
-const BUILD='build 4';
+const BUILD='build 5';
 const authNote = () => S.authErr ? `<div class="note"><b>Сервер не принял вход:</b> ${e(S.authErr)}<br><small>${BUILD}</small></div>` : '';
 const diag = () => `<div class="note"><b>Telegram не передал данные входа.</b> Откройте приложение через кнопку меню бота или ссылку Mini App (t.me/бот/приложение), а не через обычную ссылку, кнопку-ссылку или браузер.<br><small>Диагностика: WebApp — ${tg?'найден':'нет'}, initData — ${(tg?.initData||'').length} симв., платформа — ${e(tg?.platform||'—')}, ${BUILD}</small></div>`;
 const sb = supabase.createClient(CFG.url, CFG.anon);
@@ -61,19 +61,18 @@ const row=c=>`<div class="row" tabindex="0" data-a="open" data-v="${c.id}">${av(
 const empty='<div class="card mut">Пока нет сообществ. Добавьте первое — это бесплатно.</div>';
 const list=a=>a.length?a.map(row).join(''):empty;
 const V={
-home:()=>{const top=S.top||[],rec=[...S.list].sort((x,y)=>y.growth-x.growth).filter(c=>c.growth>0&&!top.some(t=>t.id===c.id)).slice(0,5),pop=[...S.cats].sort((x,y)=>y.groups-x.groups).slice(0,4);
+home:()=>{const top=S.top||[],rec=[...S.list].sort((x,y)=>y.growth-x.growth).filter(c=>c.growth>0&&!top.some(t=>t.id===c.id)).slice(0,5);
  return `<div class="top"><span class="logo">TendorX</span><button class="btn sm gh" data-a="bell" aria-label="Уведомления">🔔${S.me?.unread?` <b class="dot">${S.me.unread}</b>`:''}</button></div>
  <a href="https://t.me/TendorX" class="hero-banner" target="_blank" rel="noopener" onclick="if(window.Telegram?.WebApp?.openTelegramLink){Telegram.WebApp.openTelegramLink('https://t.me/TendorX');return false;}">
  <img src="assets/robot.webp" alt="TendorX — перейти в Telegram-канал" width="738" height="461" fetchpriority="high">
  </a>
  <input id="q" type="search" placeholder="Поиск групп, каналов, категорий…" value="${e(S.q)}" aria-label="Поиск">
  ${IN?authNote():diag()}
- ${S.q?`<h3>Результаты поиска</h3>${list(S.list.slice(0,50))}`:`<div class="top"><h3 style="margin:0">Популярные категории</h3><a class="mut" data-a="go" data-v="cats" style="cursor:pointer">Все →</a></div><div class="chips" style="margin-top:10px">${pop.map(c=>`<div class="chip" tabindex="0" data-a="cat" data-v="${c.id}">${e(c.icon)} ${e(c.title)}</div>`).join('')}</div>
- <h3>🏆 Топ сообществ</h3><div class="scroll" tabindex="0" aria-label="Топ сообществ">${list(top)}</div>
+ ${S.q?`<h3>Результаты поиска</h3>${list(S.list.slice(0,50))}`:`<h3>🏆 Топ сообществ</h3><div class="scroll" tabindex="0" aria-label="Топ сообществ">${list(top)}</div>
  ${rec.length?`<h3>Рекомендуем</h3>${rec.map(row).join('')}`:''}`}`},
 cats:()=>`<h2>Категории</h2><input id="cq" type="search" placeholder="Поиск по категориям…" value="${e(S.cq||'')}" aria-label="Поиск по категориям"><div class="tiles" id="cg">${catGrid()}</div>`,
 catalog:()=>`<button class="btn sm gh" data-a="go" data-v="cats">← Все категории</button><h2 style="margin-top:12px">Каталог</h2><input id="q" type="search" placeholder="Поиск…" value="${e(S.q)}" aria-label="Поиск">
- <div class="chips"><div class="chip ${S.cat?'':'on'}" data-a="cat" data-v="">Все</div>${S.cats.map(c=>`<div class="chip ${S.cat===c.id?'on':''}" data-a="cat" data-v="${c.id}">${e(c.icon)} ${e(c.title)} · ${c.groups}</div>`).join('')}</div>
+ <div class="chips"><div class="chip ${S.cat?'':'on'}" data-a="cat" data-v="">Все</div>${vcats().map(c=>`<div class="chip ${S.cat===c.id?'on':''}" data-a="cat" data-v="${c.id}">${e(c.icon)} ${e(c.title)} · ${c.groups}</div>`).join('')}</div>
  <div class="chips">${[['top','Популярные'],['new','Новые'],['growth','Растущие']].map(([k,t])=>`<div class="chip ${S.sort===k?'on':''}" data-a="sort" data-v="${k}">${t}</div>`).join('')}</div>${list(S.list)}`,
 rating:()=>`<h2>Рейтинг</h2><div class="note">Органический рейтинг: только подтверждённые голоса пользователей. Платное продвижение на него не влияет.</div>
  <div class="chips">${[['top','За всё время'],['growth','За 7 дней'],['new','Новые']].map(([k,t])=>`<div class="chip ${S.sort===k?'on':''}" data-a="sort" data-v="${k}">${t}</div>`).join('')}</div>${list(S.list)}`,
@@ -104,7 +103,7 @@ profile:()=>{const m=S.me,sub=S.sub;let h=`<div class="top"><span class="logo">�
  const byIds=ids=>S.list.filter(c=>ids?.includes(c.id));
  if(sub==='comms')h+='<h3>Мои сообщества</h3>'+(m.communities.length?m.communities.map(c=>`<div class="card"><b>${e(c.title)}</b> <span class="badge">${ST[c.status][0]}</span><br><small>@${e(c.username)} · ${N(c.votes)} голосов · ${N(c.clicks)} переходов</small><div class="mut" style="margin-top:6px">${e(c.reason||ST[c.status][1])}</div></div>`).join(''):'<div class="card mut">У вас пока нет сообществ.</div>');
  if(sub==='favs')h+='<h3>Избранное</h3>'+list(byIds(m.favs));if(sub==='votes')h+='<h3>Мои голосования</h3>'+list(byIds(m.voted));
- if(sub==='notes')h+='<h3>Уведомления</h3>'+(m.unread?'<button class="btn sm gh" style="margin-bottom:10px" data-a="readall">Отметить все как прочитанные</button>':'')+(m.notes.length?m.notes.map(n=>`<div class="card ${n.read?'':'unread'}" tabindex="0" data-a="nread" data-v="${n.id}"><b>${n.read?'':'● '}${e(n.title)}</b><br><small>${e(n.body)} · ${new Date(n.at).toLocaleString('ru')}${n.read?' · Прочитано':''}</small></div>`).join(''):'<div class="card mut">Уведомлений нет.</div>');
+ if(sub==='notes')h+='<h3>Уведомления</h3>'+(m.unread?'<button class="btn sm gh" style="margin-bottom:10px" data-a="readall">Отметить все как прочитанные</button>':'')+(m.notes.length?m.notes.map(n=>`<div class="card ${n.read?'':'unread'}" tabindex="0" data-a="nread" data-v="${n.id}"><b>${n.read?'':'● '}${e(n.title)}</b><br><small>${n.title==='Новый голос'?'За ваш канал «'+e(n.body)+'» проголосовал пользователь':e(n.body)} · ${new Date(n.at).toLocaleString('ru')}${n.read?' · Прочитано':''}</small></div>`).join(''):'<div class="card mut">Уведомлений нет.</div>');
  if(sub==='admin'&&S.adm){const s=S.adm.s,adm=['master_admin','admin'].includes(m.role);h+=`${S.adm.warn?`<div class="note">${e(S.adm.warn)}</div>`:''}<h3>Платформа</h3><div class="grid">${[['users','Пользователей'],['active24h','Активных 24ч'],['approved','Групп'],['pending','На модерации'],['votes','Голосов'],['clicks','Переходов']].map(([k,t])=>`<div class="card stat"><b>${N(s[k])}</b><small>${t}</small></div>`).join('')}</div>
  <h3>Заявки (${S.adm.q.length})</h3>${S.adm.q.length?S.adm.q.map(c=>`<div class="card">${c.avatar_path?`<img class="av" style="--h:210;float:right" src="${e(pu(c.avatar_path))}" alt="">`:''}<b>${e(c.title)}</b> <small>@${e(c.username)} · ${e(c.category||'')} · ${e(c.owner||'')}</small><p class="mut" style="margin:6px 0">${e(c.description)}</p>
  <input id="r${c.id}" placeholder="Причина (для отклонения / доработки)"><div style="display:flex;gap:8px"><button class="btn sm ok" data-a="mod" data-v="${c.id}|approved">Одобрить</button><button class="btn sm gh" data-a="mod" data-v="${c.id}|changes">На доработку</button><button class="btn sm no" data-a="mod" data-v="${c.id}|rejected">Отклонить</button></div></div>`).join(''):'<div class="card mut">Новых заявок нет.</div>'}
@@ -113,19 +112,21 @@ profile:()=>{const m=S.me,sub=S.sub;let h=`<div class="top"><span class="logo">�
  return h+'<p class="mut" style="margin-top:16px;text-align:center">Выход: закройте мини-приложение — сессия привязана к Telegram.</p>'}};
 const NAV=[['home','⌂','Главная'],['cats','◫','Категории'],['add','+','Добавить','plus'],['rating','☆','Рейтинг'],['profile','☺','Профиль']];
 function render(){$('#app').innerHTML=S.err&&!S.cats.length?`<div class="card err">${e(S.err)}</div>`:V[S.scr]();
- $('#nav').innerHTML=NAV.map(([k,i,t,c])=>`<button class="${c||''} ${S.scr===k||((S.scr==='catalog'||S.scr==='item')&&k==='cats')?'on':''}" data-a="go" data-v="${k}"><i>${i}</i>${t}</button>`).join('');scrollTo(0,0)}
+ $('#nav').innerHTML=NAV.map(([k,i,t,c])=>`<button class="${c||''} ${S.scr===k||((S.scr==='catalog'||S.scr==='item')&&k==='cats')?'on':''}" data-a="go" data-v="${k}"><i>${i}</i>${t}${k==='profile'&&S.me?.unread?` <b class="dot">${S.me.unread}</b>`:''}</button>`).join('');scrollTo(0,0)}
 const need = () => IN || (toast('Откройте приложение через кнопку бота в Telegram'), false);
+const HID=new Set(['finance','travel','food','auto','fashion','realty','pets','family','shopping','career']);
+const vcats=()=>S.cats.filter(c=>c.groups>0||!HID.has(c.slug));
 const RL={user:'Пользователь',master_admin:'Главный администратор',admin:'Администратор',moderator:'Модератор',support:'Поддержка',analyst:'Аналитик'};
-const catGrid=()=>{const q=(S.cq||'').toLowerCase(),a=S.cats.filter(c=>c.title.toLowerCase().includes(q));return `<div class="tile" tabindex="0" data-a="cat" data-v="">✦<b>Все категории</b><small>${S.cats.reduce((s,c)=>s+c.groups,0)} групп</small></div>`+(a.map(c=>`<div class="tile" tabindex="0" data-a="cat" data-v="${c.id}">${e(c.icon)}<b>${e(c.title)}</b><small>${c.groups} групп</small></div>`).join('')||'<div class="card mut" style="grid-column:1/-1">Ничего не найдено</div>')};
+const catGrid=()=>{const q=(S.cq||'').toLowerCase(),a=vcats().filter(c=>c.title.toLowerCase().includes(q));return `<div class="tile" tabindex="0" data-a="cat" data-v="">✦<b>Все категории</b><small>${S.cats.reduce((s,c)=>s+c.groups,0)} групп</small></div>`+(a.map(c=>`<div class="tile" tabindex="0" data-a="cat" data-v="${c.id}">${e(c.icon)}<b>${e(c.title)}</b><small>${c.groups} групп</small></div>`).join('')||'<div class="card mut" style="grid-column:1/-1">Ничего не найдено</div>')};
 const shrink=f=>new Promise((ok,no)=>{const u=URL.createObjectURL(f),i=new Image();i.onload=()=>{const s=Math.min(i.width,i.height),c=document.createElement('canvas');c.width=c.height=256;c.getContext('2d').drawImage(i,(i.width-s)/2,(i.height-s)/2,s,s,0,0,256,256);URL.revokeObjectURL(u);c.toBlob(b=>b?ok(b):no(new Error('Не удалось обработать изображение')),'image/jpeg',.85)};i.onerror=()=>no(new Error('Файл не является изображением'));i.src=u});
 async function admLoad(){const r=await Promise.allSettled([api('stats'),api('queue'),api('admin_list',{deleted:false}),api('admin_list',{deleted:true})]);const v=i=>r[i].status==='fulfilled'?r[i].value:null;if(!v(0)&&!v(1))throw r[0].reason;
  const bad=r.find(x=>x.status==='rejected'),w=bad?(/Неизвестное действие/.test(bad.reason.message)?'Сервер не обновлён: задеплойте новую функцию api (версия build 4).':bad.reason.message):'';S.adm={s:v(0)||{},q:v(1)||[],c:v(2)||[],d:v(3)||[],warn:w}}
-const markRead=()=>setTimeout(async()=>{if(S.sub!=='notes'||!S.me?.unread)return;try{await api('notes_read',{});await loadMe();render()}catch{}},1500);
+const markRead=()=>{};
 const ask=(m,cb)=>tg?.showConfirm?tg.showConfirm(m,ok=>ok&&cb()):(confirm(m)&&cb());
 const act={
  bell:async()=>{S.scr='profile';await loadMe();S.sub='notes';render();markRead()},
  readall:async()=>{try{await api('notes_read',{});await loadMe();render()}catch(x){toast(x.message)}},
- nread:async v=>{try{await api('notes_read',{id:+v});await loadMe();render()}catch(x){toast(x.message)}},
+ nread:async v=>{const n=S.me?.notes?.find(x=>x.id==v);if(!n||n.read)return;try{await api('notes_read',{id:+v});n.read=true;S.me.unread=Math.max(0,(S.me.unread||1)-1);const y=scrollY;render();scrollTo(0,y)}catch(x){toast(x.message)}},
  del:v=>ask('Удалить сообщество из каталога? Его можно будет восстановить.',async()=>{try{await api('admin_delete',{id:+v});toast('Удалено');await admLoad();await loadPub();render()}catch(x){toast(x.message)}}),
  restore:async v=>{try{await api('admin_restore',{id:+v});toast('Восстановлено');await admLoad();await loadPub();render()}catch(x){toast(x.message)}},
  go:async v=>{S.scr=v;if(v==='profile'){await loadMe()}if(v==='cats'){S.cat=null;S.q='';S.cq='';await loadPub()}if(v==='home'||v==='catalog'||v==='rating'){S.sub=''}render()},
@@ -171,5 +172,8 @@ document.addEventListener('change',async ev=>{if(ev.target.id!=='f_i')return;con
  if(!/^image\/(jpeg|png|webp)$/.test(f.type)){toast('Выберите изображение JPG, PNG или WebP');ev.target.value='';return}
  if(f.size>8e6){toast('Файл слишком большой (максимум 8 МБ)');ev.target.value='';return}
  try{S.img=await shrink(f);S.imgUrl=URL.createObjectURL(S.img);$('#imgp').innerHTML=`<img class="av" style="--h:210" src="${S.imgUrl}" alt="Предпросмотр">`}catch(x){toast(x.message)}});
+const poll=async()=>{if(!IN||document.hidden)return;const u=S.me?.unread;try{S.me=await api('me')}catch{return}
+ if(S.me?.unread!==u&&S.scr!=='add'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')){const y=scrollY;render();scrollTo(0,y)}};
+setInterval(poll,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll()});
 (async()=>{await Promise.all([loadPub(),loadMe()]);render()})();
 </script></body></html>
