@@ -33,13 +33,14 @@ button:focus-visible,.row:focus-visible,.chip:focus-visible{outline:2px solid va
 .scroll{max-height:390px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-right:2px}
 .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.tile{background:var(--p);border:1px solid var(--l);border-radius:16px;padding:16px 12px;text-align:center;cursor:pointer;font-size:26px}.tile b{display:block;font-size:15px;margin-top:6px}.tile small{display:block}
 .dot{background:var(--no);color:#fff;border-radius:99px;padding:1px 7px;font-size:12px}.unread{border-color:var(--c)}
+.av{object-fit:cover}.bigav .av{width:84px;height:84px;font-size:34px;margin:0 auto}
 </style></head><body><div id="app"></div><nav id="nav"></nav><div id="toast" role="status"></div>
 <script>
 const tg = window.Telegram?.WebApp;
 if (tg) { tg.ready(); tg.expand(); }
 // Вход возможен только когда Telegram передал подписанный initData (его проверяет сервер).
 const IN = !!(tg && tg.initData);
-const BUILD='build 3';
+const BUILD='build 4';
 const authNote = () => S.authErr ? `<div class="note"><b>Сервер не принял вход:</b> ${e(S.authErr)}<br><small>${BUILD}</small></div>` : '';
 const diag = () => `<div class="note"><b>Telegram не передал данные входа.</b> Откройте приложение через кнопку меню бота или ссылку Mini App (t.me/бот/приложение), а не через обычную ссылку, кнопку-ссылку или браузер.<br><small>Диагностика: WebApp — ${tg?'найден':'нет'}, initData — ${(tg?.initData||'').length} симв., платформа — ${e(tg?.platform||'—')}, ${BUILD}</small></div>`;
 const sb = supabase.createClient(CFG.url, CFG.anon);
@@ -50,11 +51,12 @@ const ST={pending:['На модерации','Заявка проверяетс�
 let tt;const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2600)};
 async function api(action,b={}){const r=await fetch(CFG.url+'/functions/v1/api',{method:'POST',headers:{'Content-Type':'application/json',apikey:CFG.anon,Authorization:'Bearer '+CFG.anon},body:JSON.stringify({action,initData:tg?.initData||'',...b})});
  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||j.message||('Ошибка сервера ('+r.status+')'));return j.data}
-async function loadPub(){const[a,b,t]=await Promise.all([sb.rpc('tx_categories'),sb.rpc('tx_catalog',{p_q:S.q||null,p_cat:S.cat,p_sort:S.sort,p_limit:200}),sb.rpc('tx_catalog',{p_sort:'top',p_limit:10})]);
- if(a.error||b.error){S.err='Не удалось загрузить каталог. Проверьте config.js и миграцию.';return}S.err='';S.cats=a.data;S.list=b.data;S.top=t.data||[]}
+async function loadPub(){const[a,b,t,mm]=await Promise.all([sb.rpc('tx_categories'),sb.rpc('tx_catalog',{p_q:S.q||null,p_cat:S.cat,p_sort:S.sort,p_limit:200}),sb.rpc('tx_catalog',{p_sort:'top',p_limit:10}),sb.rpc('tx_media')]);
+ if(a.error||b.error){S.err='Не удалось загрузить каталог. Проверьте config.js и миграцию.';return}S.err='';S.cats=a.data;S.list=b.data;S.top=t.data||[];S.media={};(mm.data||[]).forEach(x=>S.media[x.id]=x.avatar_path)}
 async function loadMe(){if(IN)try{S.me=await api('me');S.authErr=''}catch(x){S.authErr=x.message;toast(x.message)}}
 const voted=id=>S.me?.voted?.includes(id),fav=id=>S.me?.favs?.includes(id),staff=()=>['master_admin','admin','moderator','analyst'].includes(S.me?.role);
-const av=c=>`<div class="av" style="--h:${[...c.title].reduce((a,x)=>a+x.charCodeAt(0),0)%360}">${e([...c.title][0]?.toUpperCase()||'?')}</div>`;
+const pu=p=>CFG.url+'/storage/v1/object/public/community-media/'+p;
+const av=c=>S.media?.[c.id]?`<img class="av" style="--h:210" src="${e(pu(S.media[c.id]))}" alt="" loading="lazy">`:`<div class="av" style="--h:${[...c.title].reduce((a,x)=>a+x.charCodeAt(0),0)%360}">${e([...c.title][0]?.toUpperCase()||'?')}</div>`;
 const row=c=>`<div class="row" tabindex="0" data-a="open" data-v="${c.id}">${av(c)}<div class="g"><b>${e(c.title)}</b><small>#${c.rank} · ${N(c.votes)} голосов · ${e(c.category||'')}</small></div><button class="btn sm ${voted(c.id)?'on':''}" data-a="vote" data-v="${c.id}">${voted(c.id)?'Отменить голос':'Голосовать'}</button></div>`;
 const empty='<div class="card mut">Пока нет сообществ. Добавьте первое — это бесплатно.</div>';
 const list=a=>a.length?a.map(row).join(''):empty;
@@ -76,7 +78,7 @@ catalog:()=>`<button class="btn sm gh" data-a="go" data-v="cats">← Все ка
 rating:()=>`<h2>Рейтинг</h2><div class="note">Органический рейтинг: только подтверждённые голоса пользователей. Платное продвижение на него не влияет.</div>
  <div class="chips">${[['top','За всё время'],['growth','За 7 дней'],['new','Новые']].map(([k,t])=>`<div class="chip ${S.sort===k?'on':''}" data-a="sort" data-v="${k}">${t}</div>`).join('')}</div>${list(S.list)}`,
 item:()=>{const c=S.cur;if(!c)return empty;return`<button class="btn sm gh" data-a="go" data-v="${S.back||'home'}">← Назад</button>
- <div class="card" style="text-align:center;margin-top:12px">${av(c).replace('class="av"','class="av" style="width:84px;height:84px;font-size:34px;margin:0 auto 10px;--h:'+([...c.title].reduce((a,x)=>a+x.charCodeAt(0),0)%360)+'"')}<h2>${e(c.title)}</h2><span class="badge">${e(c.category||'')}</span>
+ <div class="card" style="text-align:center;margin-top:12px"><div class="bigav">${av(c)}</div><h2>${e(c.title)}</h2><span class="badge">${e(c.category||'')}</span>
  <div class="grid" style="margin-top:14px"><div class="stat"><b>#${c.rank}</b><small>Место</small></div><div class="stat"><b>${N(c.votes)}</b><small>Голосов</small></div><div class="stat"><b>+${N(c.growth)}</b><small>За 7 дней</small></div></div></div>
  <div style="display:flex;gap:10px"><button class="btn w ${voted(c.id)?'on':''}" data-a="vote" data-v="${c.id}">${voted(c.id)?'Отменить голос':'Проголосовать'}</button><button class="btn gh" data-a="fav" data-v="${c.id}" aria-label="Избранное">${fav(c.id)?'★':'☆'}</button></div>
  <p style="margin:14px 0">${e(c.description)||'<span class="mut">Описание не указано</span>'}</p>${(c.tags||[]).map(t=>`<span class="tag">${e(t)}</span>`).join('')}
@@ -88,7 +90,7 @@ add:()=>{const a=S.add;let h='<h2>Добавить сообщество</h2>';
  <input id="f_t" placeholder="Название" maxlength="80"><textarea id="f_d" placeholder="Описание" maxlength="500" rows="3"></textarea>
  <select id="f_c"><option value="">Категория</option>${S.cats.map(c=>`<option value="${c.id}">${e(c.title)}</option>`).join('')}</select>
  <select id="f_k"><option value="group">Группа</option><option value="supergroup">Супергруппа</option><option value="channel">Канал</option></select>
- <input id="f_g" placeholder="Теги через запятую (до 5)"><div class="err">${e(S.err)}</div></div>
+ <label class="mut" style="display:block;margin:4px 0">Изображение сообщества (необязательно, JPG/PNG/WebP)</label><div style="display:flex;align-items:center;gap:12px;margin-bottom:10px"><span id="imgp">${S.imgUrl?`<img class="av" style="--h:210" src="${S.imgUrl}" alt="Предпросмотр">`:''}</span><input id="f_i" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Изображение сообщества"></div><input id="f_g" placeholder="Теги через запятую (до 5)"><div class="err">${e(S.err)}</div></div>
  <button class="btn w" data-a="submit">Отправить на модерацию</button><button class="btn gh w" style="margin-top:10px" data-a="addreset">Назад</button>`;
  h+=`<div class="chips">${[['link','Вставить ссылку'],['mine','Мои подключённые'],['bot','Подключить через бота']].map(([k,t])=>`<div class="chip ${a.tab===k?'on':''}" data-a="addtab" data-v="${k}">${t}</div>`).join('')}</div>`;
  if(a.tab!=='link')return h+'<div class="card mut">Подключение через TendorX Bot ещё не настроено. Пока доступно добавление по ссылке. Настройка бота описана в README.</div>';
@@ -103,8 +105,8 @@ profile:()=>{const m=S.me,sub=S.sub;let h=`<div class="top"><span class="logo">�
  if(sub==='comms')h+='<h3>Мои сообщества</h3>'+(m.communities.length?m.communities.map(c=>`<div class="card"><b>${e(c.title)}</b> <span class="badge">${ST[c.status][0]}</span><br><small>@${e(c.username)} · ${N(c.votes)} голосов · ${N(c.clicks)} переходов</small><div class="mut" style="margin-top:6px">${e(c.reason||ST[c.status][1])}</div></div>`).join(''):'<div class="card mut">У вас пока нет сообществ.</div>');
  if(sub==='favs')h+='<h3>Избранное</h3>'+list(byIds(m.favs));if(sub==='votes')h+='<h3>Мои голосования</h3>'+list(byIds(m.voted));
  if(sub==='notes')h+='<h3>Уведомления</h3>'+(m.unread?'<button class="btn sm gh" style="margin-bottom:10px" data-a="readall">Отметить все как прочитанные</button>':'')+(m.notes.length?m.notes.map(n=>`<div class="card ${n.read?'':'unread'}" tabindex="0" data-a="nread" data-v="${n.id}"><b>${n.read?'':'● '}${e(n.title)}</b><br><small>${e(n.body)} · ${new Date(n.at).toLocaleString('ru')}${n.read?' · Прочитано':''}</small></div>`).join(''):'<div class="card mut">Уведомлений нет.</div>');
- if(sub==='admin'&&S.adm){const s=S.adm.s,adm=['master_admin','admin'].includes(m.role);h+=`<h3>Платформа</h3><div class="grid">${[['users','Пользователей'],['active24h','Активных 24ч'],['approved','Групп'],['pending','На модерации'],['votes','Голосов'],['clicks','Переходов']].map(([k,t])=>`<div class="card stat"><b>${N(s[k])}</b><small>${t}</small></div>`).join('')}</div>
- <h3>Заявки (${S.adm.q.length})</h3>${S.adm.q.length?S.adm.q.map(c=>`<div class="card"><b>${e(c.title)}</b> <small>@${e(c.username)} · ${e(c.category||'')} · ${e(c.owner||'')}</small><p class="mut" style="margin:6px 0">${e(c.description)}</p>
+ if(sub==='admin'&&S.adm){const s=S.adm.s,adm=['master_admin','admin'].includes(m.role);h+=`${S.adm.warn?`<div class="note">${e(S.adm.warn)}</div>`:''}<h3>Платформа</h3><div class="grid">${[['users','Пользователей'],['active24h','Активных 24ч'],['approved','Групп'],['pending','На модерации'],['votes','Голосов'],['clicks','Переходов']].map(([k,t])=>`<div class="card stat"><b>${N(s[k])}</b><small>${t}</small></div>`).join('')}</div>
+ <h3>Заявки (${S.adm.q.length})</h3>${S.adm.q.length?S.adm.q.map(c=>`<div class="card">${c.avatar_path?`<img class="av" style="--h:210;float:right" src="${e(pu(c.avatar_path))}" alt="">`:''}<b>${e(c.title)}</b> <small>@${e(c.username)} · ${e(c.category||'')} · ${e(c.owner||'')}</small><p class="mut" style="margin:6px 0">${e(c.description)}</p>
  <input id="r${c.id}" placeholder="Причина (для отклонения / доработки)"><div style="display:flex;gap:8px"><button class="btn sm ok" data-a="mod" data-v="${c.id}|approved">Одобрить</button><button class="btn sm gh" data-a="mod" data-v="${c.id}|changes">На доработку</button><button class="btn sm no" data-a="mod" data-v="${c.id}|rejected">Отклонить</button></div></div>`).join(''):'<div class="card mut">Новых заявок нет.</div>'}
  <h3>Сообщества и переходы</h3><div class="note">Переход в Telegram — это не подтверждённая подписка.</div>${S.adm.c.length?S.adm.c.map(c=>`<div class="card"><b>${e(c.title)}</b><br><small>@${e(c.username)} · голосов ${N(c.votes)} · переходов ${N(c.clicks)} (уникальных ${N(c.unique_clicks)}, за 7 дн. ${N(c.clicks_7d)})</small>${adm?`<div style="margin-top:8px"><button class="btn sm no" data-a="del" data-v="${c.id}">Удалить из каталога</button></div>`:''}</div>`).join(''):'<div class="card mut">Нет опубликованных сообществ.</div>'}
  ${S.adm.d.length?`<h3>Удалённые (${S.adm.d.length})</h3>`+S.adm.d.map(c=>`<div class="card"><b>${e(c.title)}</b> <small>@${e(c.username)}</small>${adm?`<div style="margin-top:8px"><button class="btn sm ok" data-a="restore" data-v="${c.id}">Восстановить</button></div>`:''}</div>`).join(''):''}`}
@@ -115,7 +117,9 @@ function render(){$('#app').innerHTML=S.err&&!S.cats.length?`<div class="card er
 const need = () => IN || (toast('Откройте приложение через кнопку бота в Telegram'), false);
 const RL={user:'Пользователь',master_admin:'Главный администратор',admin:'Администратор',moderator:'Модератор',support:'Поддержка',analyst:'Аналитик'};
 const catGrid=()=>{const q=(S.cq||'').toLowerCase(),a=S.cats.filter(c=>c.title.toLowerCase().includes(q));return `<div class="tile" tabindex="0" data-a="cat" data-v="">✦<b>Все категории</b><small>${S.cats.reduce((s,c)=>s+c.groups,0)} групп</small></div>`+(a.map(c=>`<div class="tile" tabindex="0" data-a="cat" data-v="${c.id}">${e(c.icon)}<b>${e(c.title)}</b><small>${c.groups} групп</small></div>`).join('')||'<div class="card mut" style="grid-column:1/-1">Ничего не найдено</div>')};
-async function admLoad(){const[s,q,c,d]=await Promise.all([api('stats'),api('queue'),api('admin_list',{deleted:false}),api('admin_list',{deleted:true})]);S.adm={s,q,c,d}}
+const shrink=f=>new Promise((ok,no)=>{const u=URL.createObjectURL(f),i=new Image();i.onload=()=>{const s=Math.min(i.width,i.height),c=document.createElement('canvas');c.width=c.height=256;c.getContext('2d').drawImage(i,(i.width-s)/2,(i.height-s)/2,s,s,0,0,256,256);URL.revokeObjectURL(u);c.toBlob(b=>b?ok(b):no(new Error('Не удалось обработать изображение')),'image/jpeg',.85)};i.onerror=()=>no(new Error('Файл не является изображением'));i.src=u});
+async function admLoad(){const r=await Promise.allSettled([api('stats'),api('queue'),api('admin_list',{deleted:false}),api('admin_list',{deleted:true})]);const v=i=>r[i].status==='fulfilled'?r[i].value:null;if(!v(0)&&!v(1))throw r[0].reason;
+ const bad=r.find(x=>x.status==='rejected'),w=bad?(/Неизвестное действие/.test(bad.reason.message)?'Сервер не обновлён: задеплойте новую функцию api (версия build 4).':bad.reason.message):'';S.adm={s:v(0)||{},q:v(1)||[],c:v(2)||[],d:v(3)||[],warn:w}}
 const markRead=()=>setTimeout(async()=>{if(S.sub!=='notes'||!S.me?.unread)return;try{await api('notes_read',{});await loadMe();render()}catch{}},1500);
 const ask=(m,cb)=>tg?.showConfirm?tg.showConfirm(m,ok=>ok&&cb()):(confirm(m)&&cb());
 const act={
@@ -151,7 +155,8 @@ const act={
     if(!category){S.err='Выберите категорию';render();return}
     if(tags && tags.split(',').filter(x=>x.trim()).length>5){S.err='Можно указать не более 5 тегов';render();return}
     try{
-      await api('submit',{username:S.add.u,title,description,category,kind,tags});
+      let avatar='';if(S.img){toast('Загружаю изображение…');const up=await api('upload_url');const r=await sb.storage.from('community-media').uploadToSignedUrl(up.path,up.token,S.img,{contentType:'image/jpeg'});if(r.error)throw new Error('Не удалось загрузить изображение: '+r.error.message);avatar=up.path}
+      await api('submit',{username:S.add.u,title,description,category,kind,tags,avatar});S.img=null;S.imgUrl='';
       S.add={step:'done'};
       await loadMe();
     }catch(x){S.err=x.message}
@@ -162,5 +167,9 @@ document.addEventListener('click',ev=>{const t=ev.target.closest('[data-a]');if(
 document.addEventListener('keydown',ev=>{if(ev.key==='Enter'&&ev.target.matches('.row,.chip'))ev.target.click()});
 let dt;document.addEventListener('input',ev=>{if(ev.target.id!=='q')return;clearTimeout(dt);dt=setTimeout(async()=>{S.q=ev.target.value.trim();await loadPub();const p=$('#app');const c=p.innerHTML;render();const q=$('#q');if(q){q.focus();q.setSelectionRange(q.value.length,q.value.length)}},350)});
 document.addEventListener('input',ev=>{if(ev.target.id!=='cq')return;S.cq=ev.target.value;$('#cg').innerHTML=catGrid()});
+document.addEventListener('change',async ev=>{if(ev.target.id!=='f_i')return;const f=ev.target.files[0];if(!f)return;
+ if(!/^image\/(jpeg|png|webp)$/.test(f.type)){toast('Выберите изображение JPG, PNG или WebP');ev.target.value='';return}
+ if(f.size>8e6){toast('Файл слишком большой (максимум 8 МБ)');ev.target.value='';return}
+ try{S.img=await shrink(f);S.imgUrl=URL.createObjectURL(S.img);$('#imgp').innerHTML=`<img class="av" style="--h:210" src="${S.imgUrl}" alt="Предпросмотр">`}catch(x){toast(x.message)}});
 (async()=>{await Promise.all([loadPub(),loadMe()]);render()})();
 </script></body></html>
